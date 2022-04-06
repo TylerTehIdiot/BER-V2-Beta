@@ -128,7 +128,7 @@ class Character extends FlxSprite
 				var modAnimToFind:String = Paths.modsJson('${json.image}/Animation');
 				var animToFind:String = Paths.getPath('images/${json.image}/Animation.json', TEXT);
 				
-				if (FileSystem.exists(modAnimToFind) || Assets.exists(animToFind));
+				if (FileSystem.exists(modAnimToFind); || Assets.exists(animToFind))
 				#else
 				if (Assets.exists(Paths.getPath('images/${json.image}/Animation.json', TEXT)))
 				#end
