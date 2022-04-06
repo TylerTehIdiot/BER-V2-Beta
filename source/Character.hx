@@ -1,14 +1,15 @@
 package;
 
-import animateatlas.AtlasFrameMaker;
 import flixel.FlxSprite;
+import flixel.input.keyboard.FlxKey;
 import flixel.tweens.FlxTween;
+import haxe.Json;
 #if MODS_ALLOWED
 import sys.io.File;
 import sys.FileSystem;
-#end
+#else
 import openfl.utils.Assets;
-import haxe.Json;
+#end
 
 using StringTools;
 
@@ -33,18 +34,18 @@ typedef AnimArray = {
 	var fps:Int;
 	var loop:Bool;
 	var indices:Array<Int>;
-	var offsets:Array<Int>;
+	var offsets:Array<Float>;
 }
 
 typedef CharacterGroupFile = {
-	var characters:Array<CharArray>;
+	var characters:Array<GroupCharacter>;
 	var position:Array<Float>;
 	var healthicon:String;
 	var camera_position:Array<Float>;
 	var healthbar_colors:Array<Int>;
 }
 
-typedef CharArray = {
+typedef GroupCharacter = {
 	var name:String;
 	var position:Array<Float>;
 }
@@ -66,6 +67,7 @@ class Character extends FlxSprite
 	public var idleSuffix:String = '';
 	public var danceIdle:Bool = false; //Character use "danceLeft" and "danceRight" instead of "idle"
 	public var danceSpeed:Int = 2;
+	public var keysPressed:Array<FlxKey> = [];
 
 	public var healthIcon:String = 'face';
 	public var animationsArray:Array<AnimArray> = [];
@@ -101,49 +103,21 @@ class Character extends FlxSprite
 			default:
 				var json:CharacterFile = getFile(curCharacter);
 
-				var spriteType = "sparrow";
-				#if MODS_ALLOWED
-				var modTxtToFind:String = Paths.modsTxt(json.image);
-				var txtToFind:String = Paths.getPath('images/${json.image}.txt', TEXT);
-				
-				if (FileSystem.exists(modTxtToFind) || Assets.exists(txtToFind))
-				#else
-				if (Assets.exists(Paths.getPath('images/${json.image}.txt', TEXT)))
-				#end
+				if (Paths.fileExists('images/${json.image}.txt', TEXT))
 				{
-					spriteType = "packer";
+					frames = Paths.getPackerAtlas(json.image);
 				}
-				#if MODS_ALLOWED
-				var modJsonToFind:String = Paths.modsJson(json.image);
-				var jsonToFind:String = Paths.getPath('images/${json.image}.json', TEXT);
-				
-				if (FileSystem.exists(modJsonToFind) || Assets.exists(jsonToFind))
-				#else
-				if (Assets.exists(Paths.getPath('images/${json.image}.json', TEXT)))
-				#end
+				else if (Paths.fileExists('images/${json.image}.json', TEXT))
 				{
-					spriteType = "texpacker";
+					frames = Paths.getTexturePackerAtlas(json.image);
 				}
-				#if MODS_ALLOWED
-				var modAnimToFind:String = Paths.modsJson('${json.image}/Animation');
-				var animToFind:String = Paths.getPath('images/${json.image}/Animation.json', TEXT);
-				
-				if (FileSystem.exists(modAnimToFind); || Assets.exists(animToFind))
-				#else
-				if (Assets.exists(Paths.getPath('images/${json.image}/Animation.json', TEXT)))
-				#end
+				else if (Paths.fileExists('images/${json.image}/Animation.json', TEXT))
 				{
-					spriteType = "texture";
+					frames = AtlasFrameMaker.construct(json.image);	
 				}
-				switch (spriteType) {
-					case "packer":
-						frames = Paths.getPackerAtlas(json.image);
-					case "sparrow":
-						frames = Paths.getSparrowAtlas(json.image);
-					case "texture":
-						frames = AtlasFrameMaker.construct(json.image);	
-					case "texpacker":
-						frames = Paths.getTexturePackerAtlas(json.image);
+				else
+				{
+					frames = Paths.getSparrowAtlas(json.image);
 				}
 				
 				imageFile = json.image;
@@ -233,7 +207,7 @@ class Character extends FlxSprite
 				if (animation.curAnim.name.endsWith('miss') && animation.curAnim.finished)
 				{
 					dance();
-					playAnim(animation.curAnim.name, true, false, 10);
+					playAnim(animation.curAnim.name, true, false, animation.curAnim.numFrames - 1);
 				}
 			} else {
 				if (animation.curAnim.name.startsWith('sing')) {
@@ -367,8 +341,7 @@ class Character extends FlxSprite
 			return null;
 		}
 
-		var json:Dynamic = cast Json.parse(rawJson);
-
+		var json = cast Json.parse(rawJson);
 		return json;
 	}
 }
